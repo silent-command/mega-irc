@@ -1,0 +1,10 @@
+build/
+bin/
+__pycache__/
+*.o
+*.elf
+.DS_Store
+build.log
+*.swp
+*.swo
+*.swn

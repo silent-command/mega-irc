@@ -1,0 +1,180 @@
+/* The kit on the MEGA65: every call goes through the TLS bank's
+ * trampoline at $1700 (the page after mega-net's), a mailbox and a JSR,
+ * as the SSH client's ckit.c does. Parameter blocks are byte arrays in
+ * this program's memory, 28-bit pointers with a zero high byte (bank
+ * 0: physical is the CPU address). No key is ever here. The Gemini
+ * client's tlskit_m65.c with this client's entries: the P-256 pair, the
+ * store read and the chain, in the renderer's place (REQUIREMENTS.md 5.15). */
+#include <stdint.h>
+#include "tls/tlskit.h"
+#include "ck_payload.h"          /* generated: the trampoline bytes and the image sizes */
+#include "m65_tlskit.h"
+
+#define CK_TR 0x1700U
+#define TR(o) (*(volatile uint8_t *)(CK_TR + (o)))
+#define ck_tr_call ((void (*)(void))(CK_TR + 0x0E))
+
+enum {
+  E_INIT = 0x2000, E_VERSION = 0x2003, E_RANDOM_SEED = 0x2006, E_RANDOM = 0x2009,
+  E_TRANSCRIPT_INIT = 0x200C, E_TRANSCRIPT_UPDATE = 0x200F, E_TRANSCRIPT_HASH = 0x2012,
+  E_KEYSHARE = 0x2015, E_KEYS_HANDSHAKE = 0x2018, E_KEYS_MASTER = 0x201B,
+  E_WRITE_SWITCH = 0x201E, E_READ_SWITCH = 0x2021, E_FINISHED = 0x2024,
+  E_SEAL = 0x2027, E_OPEN_START = 0x202A, E_OPEN_DATA = 0x202D, E_OPEN_CHECK = 0x2030,
+  E_CERT_RESET = 0x2033, E_CERT_APPEND = 0x2036, E_CERT_LEN = 0x2039, E_VERIFY = 0x203C, E_PIN = 0x203F, E_SELFTEST = 0x2042,
+  E_KEYSHARE_P256 = 0x2045, E_KEYS_HANDSHAKE_P256 = 0x2048, E_CERT_READ = 0x204B, E_CHAIN = 0x204E
+};
+
+static uint8_t blk[16];
+uint8_t tk_verify_reason;
+uint16_t tk_frames_keys, tk_frames_verify, tk_frames_chain;
+uint8_t tk_chain_count;
+#define FRAMES() ((uint16_t)(blk[14] | ((uint16_t)blk[15] << 8)))   /* the bank writes them there (gemini 5.12) */
+
+static uint8_t call(uint16_t entry, uint8_t a, uint8_t x, uint8_t y)
+{
+  TR(0) = (uint8_t)entry; TR(1) = (uint8_t)(entry >> 8);
+  TR(2) = a; TR(3) = x; TR(4) = y; TR(5) = 0;
+  ck_tr_call();
+  return TR(6);
+}
+
+static uint8_t call_blk(uint16_t entry)
+{
+  uint16_t p = (uint16_t)(uintptr_t)blk;
+  return call(entry, (uint8_t)p, (uint8_t)(p >> 8), 0);
+}
+
+static void put28(uint8_t *at, const void *p)
+{
+  uint16_t a = (uint16_t)(uintptr_t)p;
+  at[0] = (uint8_t)a; at[1] = (uint8_t)(a >> 8); at[2] = 0; at[3] = 0;
+}
+
+static void put16(uint8_t *at, uint16_t v) { at[0] = (uint8_t)v; at[1] = (uint8_t)(v >> 8); }
+
+uint8_t m65_tlskit_init(void)
+{
+  return (uint8_t)(call(E_INIT, 0, 0, 0) == 0);
+}
+
+void m65_tlskit_seed(const uint8_t *p, uint16_t n)
+{
+  put28(blk, p); put16(blk + 4, n);
+  call_blk(E_RANDOM_SEED);
+}
+
+void tk_random(uint8_t *out, uint8_t n)
+{
+  put28(blk, out); blk[4] = n;
+  call_blk(E_RANDOM);
+}
+
+void tk_transcript_init(void) { call(E_TRANSCRIPT_INIT, 0, 0, 0); }
+
+void tk_transcript_update(const uint8_t *p, uint16_t n)
+{
+  put28(blk, p); put16(blk + 4, n);
+  call_blk(E_TRANSCRIPT_UPDATE);
+}
+
+void tk_transcript_hash(uint8_t out[32]) { put28(blk, out); call_blk(E_TRANSCRIPT_HASH); }
+
+void tk_keyshare(uint8_t pub[32]) { put28(blk, pub); call_blk(E_KEYSHARE); tk_frames_keys = 0; }
+
+void tk_keys_handshake(const uint8_t peer_pub[32], const uint8_t hash[32])
+{
+  put28(blk, peer_pub); put28(blk + 4, hash);
+  call_blk(E_KEYS_HANDSHAKE);
+  tk_frames_keys = (uint16_t)(tk_frames_keys + FRAMES());
+}
+
+/* the same on P-256, after a HelloRetryRequest (5.14): two scalar
+ * multiplications, both counted, on top of the X25519 share that was
+ * offered first */
+void tk_keyshare_p256(uint8_t pub[65])
+{
+  put28(blk, pub);
+  call_blk(E_KEYSHARE_P256);
+  tk_frames_keys = (uint16_t)(tk_frames_keys + FRAMES());
+}
+
+uint8_t tk_keys_handshake_p256(const uint8_t peer_pub[65], const uint8_t hash[32])
+{
+  uint8_t r;
+  put28(blk, peer_pub); put28(blk + 4, hash);
+  r = call_blk(E_KEYS_HANDSHAKE_P256);
+  tk_frames_keys = (uint16_t)(tk_frames_keys + FRAMES());
+  return r;
+}
+
+void tk_keys_master(const uint8_t hash[32]) { put28(blk, hash); call_blk(E_KEYS_MASTER); }
+void tk_write_switch(void) { call(E_WRITE_SWITCH, 0, 0, 0); }
+void tk_read_switch(void) { call(E_READ_SWITCH, 0, 0, 0); }
+
+void tk_finished(uint8_t server, const uint8_t hash[32], uint8_t out[32])
+{
+  blk[0] = server; put28(blk + 1, hash); put28(blk + 5, out);
+  call_blk(E_FINISHED);
+}
+
+void tk_seal(uint8_t *rec, uint16_t len)
+{
+  put28(blk, rec); put16(blk + 4, len);
+  call_blk(E_SEAL);
+}
+
+void tk_open_start(const uint8_t hdr[5]) { put28(blk, hdr); call_blk(E_OPEN_START); }
+
+void tk_open_data(uint8_t *p, uint16_t n)
+{
+  put28(blk, p); put16(blk + 4, n);
+  call_blk(E_OPEN_DATA);
+}
+
+uint8_t tk_open_check(const uint8_t tag[16]) { put28(blk, tag); return call_blk(E_OPEN_CHECK); }
+
+void tk_cert_reset(void) { call(E_CERT_RESET, 0, 0, 0); }
+
+void tk_cert_append(const uint8_t *p, uint16_t n)
+{
+  put28(blk, p); put16(blk + 4, n);
+  call_blk(E_CERT_APPEND);
+}
+
+uint16_t tk_cert_len(void)
+{
+  uint8_t lo = call(E_CERT_LEN, 0, 0, 0);
+  return (uint16_t)(lo | ((uint16_t)TR(7) << 8));
+}
+
+/* The bank copies what the store has; the zeros past its end, which the
+ * kit promises, are written here, where the room is (5.15). */
+void tk_cert_read(uint16_t off, uint8_t *dst, uint16_t n)
+{
+  uint16_t total = tk_cert_len(), have = off < total ? (uint16_t)(total - off) : 0;
+  if (have > n) have = n;
+  if (have) {
+    put16(blk, off); put28(blk + 2, dst); put16(blk + 6, have);
+    call_blk(E_CERT_READ);
+  }
+  while (have < n) dst[have++] = 0;
+}
+
+uint8_t tk_verify(uint16_t scheme, const uint8_t hash[32], const uint8_t *sig, uint16_t siglen)
+{
+  uint8_t r;
+  blk[0] = (uint8_t)(scheme >> 8); blk[1] = (uint8_t)scheme;
+  put28(blk + 2, hash); put28(blk + 6, sig); put16(blk + 10, siglen);
+  r = call_blk(E_VERIFY);
+  tk_verify_reason = TR(7);
+  tk_frames_verify = FRAMES();
+  return r;
+}
+
+uint8_t tk_chain(void)
+{
+  uint8_t r = call_blk(E_CHAIN);
+  tk_chain_count = TR(7);
+  tk_frames_chain = FRAMES();
+  return r;
+}
