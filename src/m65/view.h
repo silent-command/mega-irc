@@ -1,8 +1,9 @@
 /* The views: the status window and up to seven channels, one on the
  * screen at a time, each with its scrollback in the log (log.h). The
  * chat area is rows 1 to the counts row; row 0 is the bar of views on
- * their function keys, F1 F3 F5 F7 F2 F4 F6 F8, the order the keyboard
- * delivers them (REQUIREMENTS.md section 2). */
+ * their function keys, F1 F3 F5 F7 F2 F4 F6 F8 -- a mapping this client
+ * makes, not the keyboard's (5.23), and one that closes up when a view
+ * closes, so the keys never skip (5.29). */
 #ifndef VIEW_H
 #define VIEW_H
 #include <stdint.h>
@@ -23,6 +24,7 @@ void view_close(uint8_t v);                    /* back to the status view if it 
 uint8_t view_find(const char *name);           /* case-insensitively; VIEW_NONE if no such view */
 uint8_t same_ci(const char *a, const char *b); /* the compare it uses: ASCII case folded; 0 if either is null */
 const char *view_name(uint8_t v);
+uint8_t view_at(uint8_t pos);                  /* the view on key position pos (0 = F1, 1 = F3, ...), or VIEW_NONE */
 uint8_t view_is_channel(uint8_t v);            /* a channel, not the status view */
 
 /* A line of text into view v: wrapped at 79 columns, the continuation

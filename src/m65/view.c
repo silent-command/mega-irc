@@ -17,6 +17,15 @@ typedef struct {
 #define views ((view *)LOW_VIEWS)      /* the ROM's old screen page (lowram.h); set up by view_init */
 uint8_t view_active;
 
+/* The keys are positions, the views are slots, and the two are tied by
+ * this order: position p (F1 F3 F5 F7 F2 F4 F6 F8) shows views[order[p]].
+ * A view's log ring is addressed by its slot, so a slot never moves;
+ * closing a view takes its position out of the order and the ones after
+ * it step down, so the keys never skip. Without this, parting the F3
+ * channel left F5 and F7 in place with a hole at F3 (5.29). */
+static uint8_t order[VIEW_MAX];
+static uint8_t positions;                         /* in use, the status view included */
+
 uint8_t view_rows(void) { return (uint8_t)(m65_screen_rows() - 5 - VIEW_ROW_FIRST + 1); }
 
 uint8_t same_ci(const char *a, const char *b)
@@ -36,6 +45,7 @@ void view_init(void)
 {
   uint8_t v;
   for (v = 0; v < VIEW_MAX; v++) { views[v].used = 0; log_clear(v); }
+  order[0] = 0; positions = 1;
   views[0].used = 1; views[0].name[0] = 's'; views[0].name[1] = 't'; views[0].name[2] = 'a'; views[0].name[3] = 't'; views[0].name[4] = 'u'; views[0].name[5] = 's'; views[0].name[6] = 0;
   view_show(0);
 }
@@ -49,6 +59,7 @@ uint8_t view_open(const char *name)
       for (i = 0; name[i] && i < VIEW_NAME_CAP - 1; i++) views[v].name[i] = name[i];
       views[v].name[i] = 0;
       log_clear(v);
+      order[positions++] = v;
       view_bar();
       return v;
     }
@@ -57,8 +68,12 @@ uint8_t view_open(const char *name)
 
 void view_close(uint8_t v)
 {
-  if (!v || v >= VIEW_MAX) return;
+  uint8_t p;
+  if (!v || v >= VIEW_MAX || !views[v].used) return;
   views[v].used = 0;
+  for (p = 1; p < positions && order[p] != v; p++) ;
+  for (; p + 1 < positions; p++) order[p] = order[p + 1];   /* the ones after it step down */
+  positions--;
   if (view_active == v) view_show(0); else view_bar();
 }
 
@@ -70,6 +85,7 @@ uint8_t view_find(const char *name)
 }
 
 const char *view_name(uint8_t v) { return views[v].name; }
+uint8_t view_at(uint8_t pos) { return pos < positions ? order[pos] : VIEW_NONE; }
 uint8_t view_is_channel(uint8_t v) { return (uint8_t)(v && v < VIEW_MAX && views[v].used); }
 
 /* The chat area up one row, colour and all, and the row just logged at
@@ -143,12 +159,12 @@ void view_bar(void)
   static const char keys[VIEW_MAX] = { '1', '3', '5', '7', '2', '4', '6', '8' };
   char *p = bar, *e = bar + 79;
   const char *n;
-  uint8_t v, i;
-  for (v = 0; v < VIEW_MAX; v++) {
-    if (!views[v].used) continue;
+  uint8_t v, i, pos;
+  for (pos = 0; pos < positions; pos++) {
+    v = order[pos];
     if (p > bar && p < e) *p++ = ' ';
     if (p < e) *p++ = (char)(v == view_active ? '[' : ' ');
-    if (p < e) *p++ = 'F'; if (p < e) *p++ = keys[v]; if (p < e) *p++ = ' ';
+    if (p < e) *p++ = 'F'; if (p < e) *p++ = keys[pos]; if (p < e) *p++ = ' ';
     for (n = views[v].name, i = 0; *n && i < 14 && p < e; n++, i++) *p++ = *n;
     if (views[v].unread && p < e) *p++ = '*';
     if (p < e) *p++ = (char)(v == view_active ? ']' : ' ');

@@ -22,7 +22,7 @@
 #include "m65/view.h"
 #include "m65/marks.h"
 
-#define IRCC_VERSION "0.1.1"
+#define IRCC_VERSION "0.1.2"
 
 /* Measured from the bottom, so the same layout works in 25 rows and in
  * 50: row 0 the views, the chat between, then the counts row, the
@@ -750,11 +750,12 @@ static void session(void)
       /* F1 F3 F5 F7 F2 F4 F6 F8, so the first four views need no SHIFT
        * (section 2). The codes run in label order, so the unshifted keys
        * are the even offsets and the shifted ones the odd: F1 F3 F5 F7
-       * are views 0 to 3, F2 F4 F6 F8 are 4 to 7 (5.23). An empty slot
+       * are positions 0 to 3, F2 F4 F6 F8 are 4 to 7 (5.23), and a
+       * position is a view only while one sits there. An empty one
        * says so rather than swallowing the key (5.20). */
       unsigned char n = (unsigned char)(k - KEY_F1), v;
-      v = (unsigned char)((n & 1) ? 4 + (n >> 1) : (n >> 1));
-      if (view_is_channel(v) || !v) { view_show(v); draw_counts(); status_clear(); }   /* a notice about the old view is stale in the new one */
+      v = view_at((unsigned char)((n & 1) ? 4 + (n >> 1) : (n >> 1)));   /* the key is a position; the view module says which view sits there (5.29) */
+      if (v != VIEW_NONE) { view_show(v); draw_counts(); status_clear(); }   /* a notice about the old view is stale in the new one */
       else ui_status("no view there yet", 0);
       continue;
     }
