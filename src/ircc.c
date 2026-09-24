@@ -22,7 +22,7 @@
 #include "m65/view.h"
 #include "m65/marks.h"
 
-#define IRCC_VERSION "0.1.0"
+#define IRCC_VERSION "0.1.1"
 
 /* Measured from the bottom, so the same layout works in 25 rows and in
  * 50: row 0 the views, the chat between, then the counts row, the
@@ -93,6 +93,17 @@ static unsigned long rx_lines, tx_lines;
 static unsigned long idle_frames;
 static unsigned char up_h, up_m, up_s, frame_in_s;   /* the clock kept as digits: no 32-bit division here (gemini 5.8) */
 static unsigned char last_frame, registered, pinged_idle, quitting;
+
+/* A status message is a notice, not a fixture: "joined #c64" sat on its
+ * row until the next message replaced it, which the user found
+ * intrusive (5.28). Every message arms a countdown, the second tick
+ * runs it down and clears the row, and a view switch clears it at
+ * once. The macro arms it at all 23 call sites without touching one;
+ * the parenthesised name calls the real function, unexpanded. */
+#define STATUS_SECS 5
+static unsigned char status_ttl;
+#define ui_status(a, b) (status_ttl = STATUS_SECS, (ui_status)(a, b))
+#define status_clear() (status_ttl = 0, (ui_status)(0, 0))
 
 /* ---- the screen ---------------------------------------------------------- */
 
@@ -706,6 +717,7 @@ static void session(void)
         frame_in_s = 0;
         if (++up_s == 60) { up_s = 0; if (++up_m == 60) { up_m = 0; up_h++; } }
         draw_counts();
+        if (status_ttl && !--status_ttl) status_clear();   /* the notice has been read; the row goes back to blank */
       }
     }
     if (registered && !joined) { joined = 1; join_all(channel); }
@@ -742,7 +754,7 @@ static void session(void)
        * says so rather than swallowing the key (5.20). */
       unsigned char n = (unsigned char)(k - KEY_F1), v;
       v = (unsigned char)((n & 1) ? 4 + (n >> 1) : (n >> 1));
-      if (view_is_channel(v) || !v) { view_show(v); draw_counts(); }
+      if (view_is_channel(v) || !v) { view_show(v); draw_counts(); status_clear(); }   /* a notice about the old view is stale in the new one */
       else ui_status("no view there yet", 0);
       continue;
     }
