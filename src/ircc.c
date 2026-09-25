@@ -22,7 +22,7 @@
 #include "m65/view.h"
 #include "m65/marks.h"
 
-#define IRCC_VERSION "0.1.2"
+#define IRCC_VERSION "0.1.3"
 
 /* Measured from the bottom, so the same layout works in 25 rows and in
  * 50: row 0 the views, the chat between, then the counts row, the

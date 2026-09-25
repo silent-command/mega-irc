@@ -254,12 +254,12 @@ def build_client():
     c1541 = find_tool("c1541", env="C1541")
     d81 = BIN / "IRC.D81"
     shutil.copy(image, BIN / "meganet")
-    shutil.copy(crypto_bin, BIN / "crypto")
+    shutil.copy(crypto_bin, BIN / "irccrypto")
     shutil.copy(chain_bin, BIN / "chain")
     if d81.exists():
         d81.unlink()
     run([c1541, "-format", "irc,ir", "d81", d81, "-write", prg, "irc", "-write", BIN / "meganet", "meganet",
-         "-write", BIN / "crypto", "crypto", "-write", BIN / "chain", "chain", "-write", high, "high"],
+         "-write", BIN / "irccrypto", "irccrypto", "-write", BIN / "chain", "chain", "-write", high, "high"],
         stdout=subprocess.DEVNULL)
     run([c1541, "-attach", d81, "-dir"])
     return 0

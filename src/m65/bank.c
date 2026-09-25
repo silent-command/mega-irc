@@ -1,4 +1,4 @@
-/* The TLS bank from the boot disk: CRYPTO to $12000, CHAIN (its top
+/* The TLS bank from the boot disk: IRCCRYPTO to $12000, CHAIN (its top
  * window) to $1E000 and the trampoline to $1700, as the Gemini client's
  * boot.c does (ssh ck_boot); then the bank's INIT. Three tries each: the
  * F011 read path is not perfect. */
@@ -33,8 +33,8 @@ unsigned char bank_boot(const char **err)
    * interrupt to the KERNAL's handler (ssh ckit.c; mega-net 5.18) */
   lpoke(CK_TR + 0x0A, 0x00); lpoke(CK_TR + 0x0B, 0xE0); lpoke(CK_TR + 0x0C, 0x00); lpoke(CK_TR + 0x0D, 0x00);
   for (attempt = 0; attempt < 3; attempt++)
-    if (cbmdos_load("CRYPTO", boot_drive, CK_BASE, CK_BIN_SIZE) == CK_BIN_SIZE) break;
-  if (attempt == 3) { *err = "CRYPTO not found on the boot disk (or wrong size)"; return 0; }
+    if (cbmdos_load("IRCCRYPTO", boot_drive, CK_BASE, CK_BIN_SIZE) == CK_BIN_SIZE) break;
+  if (attempt == 3) { *err = "IRCCRYPTO not found on the boot disk (or wrong size)"; return 0; }
   if (lpeek(CK_BASE) != 0x4c) { *err = "the TLS bank did not land at $12000"; return 0; }
   for (attempt = 0; attempt < 3; attempt++)
     if (cbmdos_load("CHAIN", boot_drive, CK_CHAIN, CK_CHAIN_SIZE) == CK_CHAIN_SIZE) break;
