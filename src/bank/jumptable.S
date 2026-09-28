@@ -34,7 +34,7 @@ ck_jumptable:
         jmp     ck_entry_keyshare_p256    ; $2045  A/X/Y -> {out28}: a fresh P-256 public key, 65 bytes uncompressed (5.14)
         jmp     ck_entry_keys_handshake_p256 ; $2048 A/X/Y -> {peer28, hash28}; A=1, or 0 if the peer's point is not on the curve
         jmp     ck_entry_cert_read        ; $204B  A/X/Y -> {off16, dst28, len16}: bytes of the store, zero past its end
-        jmp     ck_entry_chain            ; $204E  A/X/Y -> {block}: A = CHAIN_*, X = certificates found; the frames at +14
+        jmp     ck_entry_chain            ; $204E  A/X/Y -> {host28, now28, flags u8}: the whole check; A = CHAIN_*, X = certificates found; the frames at +14
 
         ; the registers, the swapped zero page and the six colour bytes
         ; under the vectors live in the top window ($E000, crypto.ld),

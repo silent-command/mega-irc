@@ -20,11 +20,12 @@ extern uint8_t tk_verify_reason;
  * in), on the signature, and on the chain (gemini 5.12). */
 extern uint16_t tk_frames_keys, tk_frames_verify, tk_frames_chain;
 
-/* The bank's half of the chain check over the certificates it holds:
- * the signatures and the anchor (chain.h, chain_verify). Returns CHAIN_*;
- * tk_chain_count is how many certificates the store held. Run the
- * client's half first (chain_policy), which costs nothing. */
-uint8_t tk_chain(void);
+/* The chain check over the certificates the bank holds: the leaf's
+ * name against `host` and every date against `now` (twelve digits,
+ * chain_policy), then the signatures and the anchor (chain_verify).
+ * Either string may be null to skip that half. Returns CHAIN_*;
+ * tk_chain_count is how many certificates the store held (5.31). */
+uint8_t tk_chain(const char *host, const char *now);
 extern uint8_t tk_chain_count;
 
 #endif

@@ -161,12 +161,13 @@ def build_bank():
     clang = mos_clang()
     out = BUILD / "bank"; out.mkdir(parents=True, exist_ok=True)
     gen = BUILD / "gen"
-    defs = ["-DX509_NO_ED25519", "-DTLS_P256"]        # Ed25519 and its SHA-512: 15 KB no server needs (gemini)
+    defs = ["-DX509_NO_ED25519"]                       # Ed25519 and its SHA-512: 15 KB no server needs (gemini); P-256 (OFTC) left out for the room, since 2026-09-27
     tramp = out / "ck_tramp.bin"
     print("bank trampoline:")
     run([clang, "-nostartfiles", "-nostdlib", "-T", BANK / "trampoline.ld", BANK / "trampoline.S", "-o", tramp])
     hi_objs = []
-    for src in (TLS / "der.c", TLS / "chain.c", TLS / "roots.c", BANK / "chain_api.c"):   # named in crypto.ld: compiled apart, without LTO
+    for src in (TLS / "der.c", TLS / "chain.c", TLS / "roots.c", BANK / "chain_api.c",   # named in crypto.ld: compiled apart, without LTO
+                TLS / "policy.c"):                                                         # not named there: the first region, in P-256's room (5.31)
         obj = out / (src.stem + ".o")
         run([clang, "-std=c99", "-Oz", "-fno-lto", "-c", "-DCHAIN_BANK", "-I", TLS, "-I", CRYPTO, "-I", BANK, "-I", SRC] + WARN + defs + [src, "-o", obj])
         hi_objs.append(obj)
@@ -200,12 +201,17 @@ def build_bank():
 def cflags():
     return ["-Oz", "-I", str(LIBC_SRC / "include"), "-I", str(MEGANET / "src" / "abi"),
             "-I", str(MEGANET / "build" / "gen"), "-I", str(BUILD / "gen"),
-            "-I", str(SRC / "platform"), "-I", str(SRC), "-I", str(TLS)] + WARN + ["-DTLS_P256",
+            "-I", str(SRC / "platform"), "-I", str(SRC), "-I", str(TLS)] + WARN + [
             # the disk layer's two buffers in low RAM the ROM's reset rebuilds on exit (lowram.h, step 3)
             "-DF011_BUF_AT=0x1100", "-DBAM2_AT=0x1300"]
 
 
-HIGH_OBJS = ("der.c", "policy.c", "log.c", "marks.c")   # named in src/m65/irc.ld: the window under the KERNAL, compiled apart (5.17)
+# Named in src/m65/irc.ld: the window under the KERNAL, compiled apart,
+# without LTO (5.17). The chain's client half lived there until it moved
+# into the bank whole (5.31); the commands took its room (5.32). Tried
+# and worse: the disk layer and the bookmarks there with the commands
+# back under LTO -- both regions overflowed (5.33).
+HIGH_OBJS = ("log.c", "cmd.c")
 RAM_LEN = 2 + 0xAFFF                                    # the PRG's header and its whole region; the HIGH image follows
 
 
@@ -229,13 +235,11 @@ def build_client():
     crypto_bin, chain_bin = build_bank()
     BIN.mkdir(exist_ok=True)
     gen = BUILD / "gen"
-    srcs = sorted(str(p) for p in SRC.glob("*.c"))
-    srcs += sorted(str(p) for p in (SRC / "platform").glob("*.c"))
-    srcs += sorted(str(p) for p in (SRC / "m65").glob("*.c") if p.name not in HIGH_OBJS)
-    srcs += [str(TLS / "tls.c")]                     # the engine; the client's half of the chain check is in HIGH, the rest is the bank's
+    srcs = sorted(str(p) for d in (SRC, SRC / "platform", SRC / "m65") for p in d.glob("*.c") if p.name not in HIGH_OBJS)
+    srcs += [str(TLS / "tls.c")]                     # the engine; the chain check is the bank's, whole (5.31)
     hi_objs = []
     for name in HIGH_OBJS:
-        src = (TLS if name in ("der.c", "policy.c") else SRC / "m65") / name
+        src = next(d / name for d in (SRC / "m65", SRC / "platform", SRC) if (d / name).exists())
         obj = gen / (src.stem + ".o")
         run([clang] + cflags() + ["-fno-lto", "-c", str(src), "-o", str(obj)])
         hi_objs.append(str(obj))

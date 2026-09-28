@@ -21,8 +21,7 @@
 #include "m65/log.h"
 #include "m65/view.h"
 #include "m65/marks.h"
-
-#define IRCC_VERSION "0.1.3"
+#include "m65/ircc.h"                /* what cmd.c, in the HIGH window, shares with this file (5.32) */
 
 /* Measured from the bottom, so the same layout works in 25 rows and in
  * 50: row 0 the views, the chat between, then the counts row, the
@@ -34,7 +33,6 @@
 #define ROW_COUNTS ((unsigned char)(m65_screen_rows() - 3))
 #define ROW_INPUT ((unsigned char)(m65_screen_rows() - 1))
 
-#define LINE_MAX 512                 /* RFC 1459: 510 plus the CRLF */
 #define FRAMES_PER_S 50
 #define IDLE_PING_S 150              /* our own PING after this long without a byte */
 #define DEAD_S 300                   /* and the link is dead after this long */
@@ -56,16 +54,14 @@
 static char server[64] = "irc.libera.chat";
 static char port_text[6] = "6697";
 static char tls_text[2] = "y";
-static char nick[17] = "mega65";
+char nick[17] = "mega65";
 #define channel LOW_CHANNEL          /* no default, and none needed: the user may name some, comma-separated, or a bookmark may (section 2); 64 bytes in low RAM */
 static unsigned char use_tls;
 
 #define line LOW_LINE                /* the line being assembled from the stream */
 static unsigned int line_len;
-#define shown LOW_SHOWN              /* a line composed for the screen */
 #define input LOW_INPUT              /* what is being typed */
 static unsigned char input_len, input_pos;       /* the length, and where the cursor sits in it */
-#define nspass LOW_NSPASS            /* the NickServ password, this session's only (section 2) */
 /* The lines sent, for the cursor keys to walk back through: in the
  * attic, so they cost the program two bytes of state and nothing else
  * (5.24). Eight is a power of two and divides 256, so the counter may
@@ -82,7 +78,6 @@ static unsigned char input_len, input_pos;       /* the length, and where the cu
 #define HIST_MAX 8
 #define HIST_SLOT 208
 static unsigned char hist_count, hist_at;
-#define tmp LOW_TMP                  /* a line being composed to send, 513 bytes */
 static const char *now;              /* the clock as twelve digits (LOW_NOW), or null when it cannot be trusted (5.8) */
 
 /* The spike counted bytes, PINGs and reconnects for the soak (5.2); the
@@ -92,7 +87,8 @@ static const char *now;              /* the clock as twelve digits (LOW_NOW), or
 static unsigned long rx_lines, tx_lines;
 static unsigned long idle_frames;
 static unsigned char up_h, up_m, up_s, frame_in_s;   /* the clock kept as digits: no 32-bit division here (gemini 5.8) */
-static unsigned char last_frame, registered, pinged_idle, quitting;
+static unsigned char last_frame, registered, pinged_idle;
+unsigned char quitting;
 
 /* A status message is a notice, not a fixture: "joined #c64" sat on its
  * row until the next message replaced it, which the user found
@@ -100,17 +96,12 @@ static unsigned char last_frame, registered, pinged_idle, quitting;
  * runs it down and clears the row, and a view switch clears it at
  * once. The macro arms it at all 23 call sites without touching one;
  * the parenthesised name calls the real function, unexpanded. */
-#define STATUS_SECS 5
-static unsigned char status_ttl;
-#define ui_status(a, b) (status_ttl = STATUS_SECS, (ui_status)(a, b))
-#define status_clear() (status_ttl = 0, (ui_status)(0, 0))
+unsigned char status_ttl;            /* the macro is in ircc.h, for cmd.c's sake */
 
 /* ---- the screen ---------------------------------------------------------- */
 
-#define SHOWN_END (shown + LOW_SHOWN_CAP - 1)
-
 /* Two or three pieces into `shown`; where the next piece goes. */
-static char *compose(const char *a, const char *b, const char *c)
+char *compose(const char *a, const char *b, const char *c)
 {
   char *p = shown;
   p = ui_cat(p, SHOWN_END, a); p = ui_cat(p, SHOWN_END, b); p = ui_cat(p, SHOWN_END, c);
@@ -119,7 +110,7 @@ static char *compose(const char *a, const char *b, const char *c)
 }
 
 /* Those pieces as one line of view v. */
-static void say(unsigned char v, const char *a, const char *b, const char *c)
+void say(unsigned char v, const char *a, const char *b, const char *c)
 {
   compose(a, b, c);
   view_line(v, shown);
@@ -134,7 +125,7 @@ static void say(unsigned char v, const char *a, const char *b, const char *c)
  * This client spent them on the session loop and the editor instead, and
  * shows a '?' where that one would show an 'e' (5.24). It is the first
  * thing to put back if the room ever appears. */
-static char *fold(char *p, char *end, const char *s)
+char *fold(char *p, char *end, const char *s)
 {
   unsigned char c;
   while (*s && p < end) {
@@ -154,7 +145,7 @@ static char *fold(char *p, char *end, const char *s)
  * two people in a channel are told apart at a glance (step 3). The
  * words around it keep the text colour, so MEGA-F still changes every
  * word at once and the names stay theirs. */
-static void say_text(unsigned char v, const char *a, const char *b, const char *c, const char *text)
+void say_text(unsigned char v, const char *a, const char *b, const char *c, const char *text)
 {
   char *p = ui_cat(shown, SHOWN_END, a);
   unsigned char h = 0, n = 0;
@@ -242,7 +233,7 @@ static unsigned char read_secret(unsigned char row, const char *prompt, char *ou
 
 /* ---- the wire ------------------------------------------------------------ */
 
-static unsigned char send_all(const char *s)
+unsigned char send_all(const char *s)
 {
   unsigned int n = 0;
   while (s[n]) n++;
@@ -251,7 +242,7 @@ static unsigned char send_all(const char *s)
   return 1;
 }
 
-static unsigned char send3(const char *a, const char *b, const char *c)
+unsigned char send3(const char *a, const char *b, const char *c)
 {
   char *p = tmp, *e = tmp + LINE_MAX - 2;      /* room kept for the CRLF and the NUL */
   p = ui_cat(p, e, a); p = ui_cat(p, e, b); p = ui_cat(p, e, c);
@@ -259,17 +250,17 @@ static unsigned char send3(const char *a, const char *b, const char *c)
   return send_all(tmp);
 }
 
-static unsigned char is_channel(const char *s) { return (unsigned char)(s && (*s == '#' || *s == '&')); }
+unsigned char is_channel(const char *s) { return (unsigned char)(s && (*s == '#' || *s == '&')); }
 
 /* The view a message about `target` belongs in: its channel's, else the status view. */
-static unsigned char view_of(const char *target)
+unsigned char view_of(const char *target)
 {
   unsigned char v = is_channel(target) ? view_find(target) : VIEW_NONE;
   return v == VIEW_NONE ? VIEW_STATUS : v;
 }
 
 /* The channel view for a name, opened if need be; VIEW_NONE if all seven are taken. */
-static unsigned char view_for(const char *name)
+unsigned char view_for(const char *name)
 {
   unsigned char v = view_find(name);
   if (v == VIEW_NONE) v = view_open(name);
@@ -368,19 +359,7 @@ static void handle_line(void)
     if (n < 15) { nick[n] = '2'; nick[n + 1] = 0; } else nick[n - 1]++;
     send3("NICK ", nick, 0);
   }
-  if (irc_is(&m, "PRIVMSG") || irc_is(&m, "NOTICE")) {
-    char tag[12];
-    unsigned char notice = irc_is(&m, "NOTICE"), query;
-    v = view_of(m.params[0]);
-    query = (unsigned char)(!notice && !is_channel(m.params[0]));   /* to us, not a channel: no view of its own yet */
-    if (irc_ctcp(&m, tag, sizeof tag)) {
-      if (same_ci(tag, "ACTION")) say_text(v, "* ", who, " ", m.trailing);   /* other CTCP requests go unanswered: the bytes (5.18) */
-      return;
-    }
-    if (notice) say_text(v, "-", who, "- ", m.trailing);
-    else say_text(v, query ? "(private) <" : "<", who, "> ", m.trailing);
-    return;
-  }
+  if (irc_is(&m, "PRIVMSG") || irc_is(&m, "NOTICE")) { cmd_said(&m, who); return; }   /* cmd.c: the private views, the ignore list, CTCP (5.32) */
   if (irc_is(&m, "JOIN")) {
     const char *chan = m.params[0] ? m.params[0] : text;
     if (same_ci(who, nick)) { v = view_for(chan); if (v != VIEW_NONE) { view_show(v); ui_status("joined ", chan); } say(v, "-- you have joined ", chan, 0); }
@@ -407,6 +386,7 @@ static void handle_line(void)
   if (m.numeric == 353) { say(view_of(m.params[2]), "-- here: ", text, 0); return; }
   if (m.numeric == 366) return;
   if (irc_is(&m, "MODE")) { say(view_of(m.params[0]), "-- mode ", m.params[1], text); return; }
+  if (cmd_routed(&m, who, text)) return;          /* INVITE, WHOIS and the rest cmd.c answers for (5.32) */
   /* everything else to the status view: the command or numeric, the parameters, the text */
   { char *p = shown, *e = shown + LOW_SHOWN_CAP - 1; unsigned char i;
     p = ui_cat(p, e, m.cmd);
@@ -429,11 +409,11 @@ static void on_bytes(const unsigned char *p, unsigned int n)
 /* ---- what is typed --------------------------------------------------------- */
 
 /* A message or an action to a channel or a nick, sent and shown: in the
- * channel's view as the others' are, or as "-> target: text" in the
- * showing view when the target has no view here. */
-static void privmsg(const char *target, const char *text, unsigned char action)
+ * channel's or the person's view as the others' are, or as "-> target:
+ * text" in the showing view when the target has no view here. */
+void privmsg(const char *target, const char *text, unsigned char action)
 {
-  unsigned char v = is_channel(target) ? view_find(target) : VIEW_NONE;
+  unsigned char v = view_find(target);
   char *p = tmp, *e = tmp + LINE_MAX - 2;
   p = ui_cat(p, e, "PRIVMSG "); p = ui_cat(p, e, target); p = ui_cat(p, e, action ? " :\001ACTION " : " :");
   p = ui_cat(p, e, text); if (action) p = ui_cat(p, e, "\001");
@@ -446,7 +426,7 @@ static void privmsg(const char *target, const char *text, unsigned char action)
 
 /* Into a channel's view, opened if need be, and JOIN sent. `chan` may
  * lack its #, which is put on in place. */
-static void join(char *chan)
+void join(char *chan)
 {
   unsigned char v;
   if (!*chan) { say(view_active, "-- /join #channel", 0, 0); return; }
@@ -455,46 +435,6 @@ static void join(char *chan)
   if (v == VIEW_NONE) { say(view_active, "-- no free view: /part one first", 0, 0); return; }
   view_show(v);
   send3("JOIN ", chan, 0);
-}
-
-/* /join, /part, /quit, /nick, /msg, /me, /raw; anything else refused,
- * never sent as text (section 2). `s` is the line past its slash: the
- * command word, then `arg`, the rest of the line. */
-static void command(char *s)
-{
-  char *arg = s;
-  while (*arg && *arg != ' ') arg++;
-  if (*arg) *arg++ = 0;
-  while (*arg == ' ') arg++;
-  if (same_ci(s, "join") || same_ci(s, "j")) join(arg);
-  else if (same_ci(s, "part") || same_ci(s, "p")) {
-    const char *chan = is_channel(arg) ? arg : view_name(view_active);
-    unsigned char v = view_find(chan);
-    if (!is_channel(chan)) { say(view_active, "-- /part #channel", 0, 0); return; }
-    send3("PART ", chan, 0);
-    if (v != VIEW_NONE) view_close(v);              /* at once, not on the echo: a server that sends none would leave it open */
-  } else if (same_ci(s, "quit") || same_ci(s, "q")) {
-    send3("QUIT :", *arg ? arg : "the MEGA65 says goodbye", 0);
-    quitting = 1;
-  } else if (same_ci(s, "nick")) {
-    if (*arg) send3("NICK ", arg, 0); else say(view_active, "-- /nick name", 0, 0);
-  } else if (same_ci(s, "msg") || same_ci(s, "m")) {
-    char *text = arg;
-    while (*text && *text != ' ') text++;
-    if (*text) *text++ = 0;
-    while (*text == ' ') text++;
-    if (*arg && *text) privmsg(arg, text, 0); else say(view_active, "-- /msg nick text", 0, 0);
-  } else if (same_ci(s, "me")) {
-    if (*arg && view_is_channel(view_active)) privmsg(view_name(view_active), arg, 1);
-    else say(view_active, "-- /me needs a channel, and something to do", 0, 0);
-  } else if (same_ci(s, "identify") || same_ci(s, "id")) {
-    unsigned char i;
-    if (*arg) { for (i = 0; arg[i] && i < LOW_NSPASS_CAP - 1; i++) nspass[i] = arg[i]; nspass[i] = 0; }
-    if (nspass[0]) { send3("PRIVMSG NickServ :IDENTIFY ", nspass, 0); say(view_active, "-- identifying to NickServ", 0, 0); }
-    else say(view_active, "-- /identify password", 0, 0);
-  } else if (same_ci(s, "raw") || same_ci(s, "quote")) {
-    if (*arg) { send3(arg, 0, 0); say(view_active, "-> ", arg, 0); }
-  } else say(view_active, "-- unknown command: /", s, 0);
 }
 
 /* Each channel of a comma-separated list joined, in order. */
@@ -513,7 +453,7 @@ static void join_all(const char *list)
 
 static void typed_line(void)
 {
-  if (input[0] == '/') { command(input + 1); return; }
+  if (input[0] == '/') { cmd_line(input + 1); return; }   /* the slash commands are cmd.c's (5.32) */
   if (view_is_channel(view_active)) privmsg(view_name(view_active), input, 0);
   else say(view_active, "-- no channel here: /join one", 0, 0);
 }
@@ -652,6 +592,7 @@ int main(void)
   if (!bank_boot(&err)) { ui_status("TLS: ", err); for (;;) ; }
   /* only now: log_init lives in the HIGH window bank_boot has just loaded (5.17) */
   if (!log_init()) { ui_status("no attic RAM: this client needs the 8 MB expansion", 0); for (;;) ; }
+  cmd_init();                                     /* the ignore list, in the attic too */
   ui_status("gathering randomness...", 0);
   rnd_init();
   ui_status("waiting for a lease...", 0);

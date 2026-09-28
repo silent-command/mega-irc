@@ -3,8 +3,10 @@
  * as the SSH client's ckit.c does. Parameter blocks are byte arrays in
  * this program's memory, 28-bit pointers with a zero high byte (bank
  * 0: physical is the CPU address). No key is ever here. The Gemini
- * client's tlskit_m65.c with this client's entries: the P-256 pair, the
- * store read and the chain, in the renderer's place (REQUIREMENTS.md 5.15). */
+ * client's tlskit_m65.c with this client's entries: the chain check,
+ * whole, in the renderer's place (REQUIREMENTS.md 5.15, 5.31); the P-256
+ * pair only when TLS_P256 is built, which it is not since OFTC was
+ * dropped for the room. */
 #include <stdint.h>
 #include "tls/tlskit.h"
 #include "ck_payload.h"          /* generated: the trampoline bytes and the image sizes */
@@ -88,6 +90,7 @@ void tk_keys_handshake(const uint8_t peer_pub[32], const uint8_t hash[32])
   tk_frames_keys = (uint16_t)(tk_frames_keys + FRAMES());
 }
 
+#ifdef TLS_P256
 /* the same on P-256, after a HelloRetryRequest (5.14): two scalar
  * multiplications, both counted, on top of the X25519 share that was
  * offered first */
@@ -106,6 +109,7 @@ uint8_t tk_keys_handshake_p256(const uint8_t peer_pub[65], const uint8_t hash[32
   tk_frames_keys = (uint16_t)(tk_frames_keys + FRAMES());
   return r;
 }
+#endif
 
 void tk_keys_master(const uint8_t hash[32]) { put28(blk, hash); call_blk(E_KEYS_MASTER); }
 void tk_write_switch(void) { call(E_WRITE_SWITCH, 0, 0, 0); }
@@ -141,24 +145,8 @@ void tk_cert_append(const uint8_t *p, uint16_t n)
   call_blk(E_CERT_APPEND);
 }
 
-uint16_t tk_cert_len(void)
-{
-  uint8_t lo = call(E_CERT_LEN, 0, 0, 0);
-  return (uint16_t)(lo | ((uint16_t)TR(7) << 8));
-}
-
-/* The bank copies what the store has; the zeros past its end, which the
- * kit promises, are written here, where the room is (5.15). */
-void tk_cert_read(uint16_t off, uint8_t *dst, uint16_t n)
-{
-  uint16_t total = tk_cert_len(), have = off < total ? (uint16_t)(total - off) : 0;
-  if (have > n) have = n;
-  if (have) {
-    put16(blk, off); put28(blk + 2, dst); put16(blk + 6, have);
-    call_blk(E_CERT_READ);
-  }
-  while (have < n) dst[have++] = 0;
-}
+/* tk_cert_len and tk_cert_read (E_CERT_LEN, E_CERT_READ) are not
+ * built: the chain check reads the store from inside the bank (5.31). */
 
 uint8_t tk_verify(uint16_t scheme, const uint8_t hash[32], const uint8_t *sig, uint16_t siglen)
 {
@@ -171,9 +159,12 @@ uint8_t tk_verify(uint16_t scheme, const uint8_t hash[32], const uint8_t *sig, u
   return r;
 }
 
-uint8_t tk_chain(void)
+uint8_t tk_chain(const char *host, const char *now)
 {
-  uint8_t r = call_blk(E_CHAIN);
+  uint8_t r;
+  put28(blk, host); put28(blk + 4, now);
+  blk[8] = (uint8_t)((host ? 1 : 0) | (now ? 2 : 0));
+  r = call_blk(E_CHAIN);
   tk_chain_count = TR(7);
   tk_frames_chain = FRAMES();
   return r;

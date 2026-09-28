@@ -33,18 +33,18 @@ SECTIONS {
     /* BASIC program that jumps to _start. */
     .basic_header : { *(.basic_header) }
 
-    /* the self-contained modules: the chain's client half and the row
-     * log (5,967 bytes; view.c's 3.7 KB calls the screen and the UI at
-     * every turn and stays under LTO in ram, 5.17) */
+    /* the self-contained modules: the row log and the slash commands
+     * (view.c's 3.7 KB calls the screen and the UI at every turn and
+     * stays under LTO in ram, 5.17); the chain's client half was here
+     * until it moved into the bank whole and the commands took its
+     * room (5.31, 5.32; build.py HIGH_OBJS) */
     .text.hi : {
-        *der.o(.text .text.* .rodata .rodata.*)
-        *policy.o(.text .text.* .rodata .rodata.*)
         *log.o(.text .text.* .rodata .rodata.*)
-        *marks.o(.text .text.* .rodata .rodata.*)
+        *cmd.o(.text .text.* .rodata .rodata.*)
     } > hi
     .bss.hi (NOLOAD) : {
         __hi_bss_start = .;
-        *der.o(.bss .bss.*) *policy.o(.bss .bss.*) *log.o(.bss .bss.*) *marks.o(.bss .bss.*)
+        *log.o(.bss .bss.*) *cmd.o(.bss .bss.*)
         __hi_bss_end = .;
     } > hi
 

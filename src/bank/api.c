@@ -3,9 +3,11 @@
  * api.c with this client's differences (REQUIREMENTS.md 5.15): no
  * renderer and no self-test; CertificateVerify checked for RSA-PSS only,
  * since an EC chain is refused before it could matter (5.10, 5.14); the
- * P-256 pair for a server that will not take X25519 (5.14); the store
- * read out to the client, whose half of the chain check needs it; and
- * the chain entry itself, in the top window (chain_api.c).
+ * P-256 pair for a server that will not take X25519, left out since
+ * 2026-09-27 for the room (5.14, 5.31); the store read out to the
+ * client, which no longer needs it but may; and the chain entry, which
+ * takes the host name and the clock in and runs the whole check
+ * (chain_api.c, in the top window).
  *
  * Every entry reads a parameter block from the caller's memory by DMA
  * (A/X/Y hold its 28-bit address), moves data through a staging buffer,
@@ -221,6 +223,14 @@ void ck_api_keys_handshake(void)
   ck_frames_done();
 }
 
+/* P-256, for a server that will not take X25519 (OFTC, 5.14). Left out
+ * of the bank now: the six kilobytes it took are the room the chain
+ * policy and the client's features needed, and OFTC still answers in
+ * the clear on 6667. The two entries stay in the table and say no. */
+#ifndef TLS_P256
+void ck_api_keyshare_p256(void) { ck_api_ra = 0; }
+void ck_api_keys_handshake_p256(void) { ck_api_ra = 0; }
+#else
 /* {out28}: 04, X, Y. A scalar the curve refuses is drawn again, as the
  * host kit does; the frames are counted, since this is a scalar
  * multiplication too (5.14). */
@@ -250,6 +260,7 @@ void ck_api_keys_handshake_p256(void)
   }
   ck_frames_done();
 }
+#endif
 
 /* {hash28} */
 void ck_api_keys_master(void)
@@ -337,8 +348,29 @@ void ck_api_cert_append(void)
 
 void ck_api_cert_len(void) { ck_api_ra = (uint8_t)cert_len; ck_api_rx = (uint8_t)(cert_len >> 8); }
 
+/* {host28, now28, flags u8}: the whole chain check over the store, the
+ * name and the dates first (policy.c) and the signatures after (chain.c);
+ * A = CHAIN_*, X = the certificates found, the frames at +14. The two
+ * strings are copied in whole, a name of up to 63 characters and the
+ * twelve digits of the clock; flag bit 0 says the name is there, bit 1
+ * the clock, and a half whose string is missing is skipped (5.31). */
+uint8_t ck_chain_run(const char *host, const char *now);   /* chain_api.c */
+static uint8_t pol_host[64] IN_BSS("pol_host");
+static uint8_t pol_now[13] IN_BSS("pol_now");
+void ck_api_chain(void)
+{
+  get_block();
+  ck_frames_start();
+  if (blk[8] & 1) ck_dma_copy(p28(blk), PHYS(pol_host), sizeof pol_host);
+  if (blk[8] & 2) ck_dma_copy(p28(blk + 4), PHYS(pol_now), sizeof pol_now);
+  pol_host[63] = 0; pol_now[12] = 0;
+  ck_api_ra = ck_chain_run(blk[8] & 1 ? (const char *)pol_host : 0, blk[8] & 2 ? (const char *)pol_now : 0);
+  ck_frames_done();
+}
+
 /* {off16, dst28, len16}: bytes of the store into the caller's memory, for
- * the client's half of the chain check (5.15). Clamped to the store:
+ * a client-side walk of the chain; unused since the whole check moved
+ * into the bank (5.31), kept for the entry's number. Clamped to the store:
  * the kit's promise of zeros past the end is kept by the client's kit,
  * which has the room this region has not. */
 void ck_api_cert_read(void)

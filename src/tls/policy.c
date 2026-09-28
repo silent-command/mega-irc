@@ -1,8 +1,9 @@
 /* The half of the chain check that is policy rather than arithmetic: is
  * the leaf for the host we dialled, and is every certificate in date.
- * No key and no signature is touched here, so on the MEGA65 this runs
- * in the client, where the clock is, and the TLS bank keeps only the
- * signatures (chain.c; REQUIREMENTS.md 5.15). */
+ * No key and no signature is touched here. On the MEGA65 it ran in the
+ * client until P-256 left the TLS bank; now it sits in the bank with
+ * the signatures, and the client sends the host name and the clock in
+ * with the call (chain.c, chain_api.c; REQUIREMENTS.md 5.15, 5.31). */
 #include "chain.h"
 #include "der.h"
 
@@ -68,14 +69,8 @@ static uint8_t dns_matches(const uint8_t *dns, uint16_t n, const char *host)
   return (uint8_t)(*h == 0);
 }
 
-#ifdef __mos__
-#include "../m65/lowram.h"
-#define dnsbuf ((uint8_t *)LOW_LINE)   /* the stream's line buffer, idle during the handshake (5.18) */
-#define DNS_CAP 128
-#else
-static uint8_t dnsbuf[128];
+static uint8_t dnsbuf[128];         /* in the bank since 5.31: the room P-256 left */
 #define DNS_CAP sizeof dnsbuf
-#endif
 
 uint8_t chain_host_matches(const char *host)
 {

@@ -16,7 +16,6 @@
 #define IN_CAP LOW_IN_CAP
 #define out LOW_OUT
 #define OUT_CAP LOW_OUT_CAP
-#define CHAIN_MAX 5                /* as the bank's (chain_api.c) */
 
 #define t (*(tls *)LOW_TLS)            /* 809 bytes, in the ROM's old screen page (lowram.h) */
 static uint8_t tls_on;
@@ -87,12 +86,7 @@ static uint8_t pump(uint8_t (*done)(void), unsigned int bound)
 
 static uint8_t handshake_done(void) { return (uint8_t)(tls_state(&t) != TLS_WAIT_SH && tls_state(&t) != TLS_WAIT_HS); }
 
-/* ---- the chain: the client's half over the bank's store -------------------- */
-
-static void store_read(void *ctx, uint16_t off, uint8_t *dst, uint16_t n)
-{
-  tk_cert_read((uint16_t)((uint16_t)(uintptr_t)ctx + off), dst, n);
-}
+/* ---- the chain: the bank's, whole, since 5.31 ------------------------------ */
 
 static const char *chain_word(uint8_t r)
 {
@@ -109,19 +103,9 @@ static const char *chain_word(uint8_t r)
 
 static uint8_t chain_check(const char *host, const char *now)
 {
-  uint16_t off[CHAIN_MAX], len[CHAIN_MAX];
-  chain_ref ch[CHAIN_MAX];
-  uint8_t n, i, r;
-  n = chain_split(store_read, 0, tk_cert_len(), off, len, CHAIN_MAX);
-  conn_certs = n;
-  for (i = 0; i < n; i++) {
-    ch[i].read = store_read;
-    ch[i].ctx = (void *)(uintptr_t)off[i];         /* the hook adds it: each certificate begins at zero */
-    ch[i].len = len[i];
-  }
-  r = chain_policy(ch, n, host, now);              /* the name and the dates: free */
-  if (r != CHAIN_OK) return r;
-  return tk_chain();                               /* the signatures and the anchor: the bank's arithmetic */
+  uint8_t r = tk_chain(host, now);                 /* the name and the dates, then the signatures and the anchor */
+  conn_certs = tk_chain_count;
+  return r;
 }
 
 /* ---- the connection ------------------------------------------------------ */
