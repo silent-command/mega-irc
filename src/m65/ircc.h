@@ -10,7 +10,7 @@
 #include "irc.h"
 #include "m65/lowram.h"
 
-#define IRCC_VERSION "0.2.1"
+#define IRCC_VERSION "0.2.2"
 #define LINE_MAX 512                 /* RFC 1459: 510 plus the CRLF */
 
 #define shown LOW_SHOWN              /* a line composed for the screen */
