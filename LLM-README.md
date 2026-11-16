@@ -86,7 +86,7 @@ host, port, TLS, nick and channels. No passwords are stored.
 
 ## License
 
-0BSD, see `LICENSE`. mega-net is a separate project under the same
+Apache License 2.0, see `LICENSE`. mega-net is a separate project under the same
 license; mega65-libc is under its own. The platform modules under
 `src/platform/` and the TLS engine and its arithmetic under `src/tls/`,
 `src/crypto/` and `src/bank/` are shared with the MEGA65 Gemini, FTP,

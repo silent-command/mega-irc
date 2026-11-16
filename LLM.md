@@ -5,7 +5,7 @@ with the certificate chain verified to a carried root, or plaintext to
 a server of your own; one channel, printed as it comes, pinged and
 answered, counted on a status row. Native mode, llvm-mos, 80x25 or
 80x50, `-Oz`, the arithmetic in a bank image as the Gemini client does
-it. 0BSD.
+it. Apache License 2.0.
 
 The platform modules under `src/platform/` (`m65_*`) are the family's
 copies (from `../mega-ntp`, which took them from `../mega-ftp` and
