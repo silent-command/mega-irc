@@ -44,7 +44,7 @@ apart, past Libera's ECDSA servers and its throttle (5.21).
 `p384.c` and `sha384.c` verify all three links of the elliptic-curve
 chain Libera actually serves, against vectors the cryptography package
 signed off first. They cost 4.7 KB of 6502 code and 1,488 bytes of
-scratch, against 332 bytes free in the bank, 237 in its window and
+scratch, against 332 bytes free in the bank then (2.6 KB since 5.28), 237 in its window and
 1.4 KB in the client, and a verification is 3.5 times a P-256 one,
 which was 10 s here. Read 5.22 before starting that work: it is a
 5.15-scale exercise plus a timing question, not an afternoon.
@@ -73,7 +73,7 @@ because this client exits through the ROM's reset (5.27, lowram.h).
 
 ## Picking this up
 
-- `python3 build.py test` is the gate: four host suites, 174 checks,
+- `python3 build.py test` is the gate: five host suites, 189 checks,
   before anything reaches the machine. `python3 build.py` builds the
   bank and the client and refuses on the ssh 5.6 miscompile shape, an
   empty top window, and less than 1 KB of stack headroom.
@@ -136,7 +136,7 @@ python3 tools/irc_test_server.py [--port 6667] [--ping 90] [--chat 60] [--names 
                               the plaintext fixture, on the Mac; it logs every line with the time
 ```
 
-On the machine, with the driver (the Mac is 192.168.1.232):
+On the machine, with the driver (the Mac is 192.168.1.251):
 
 ```
 source ../mega-net/tools/m65lib.sh
@@ -166,7 +166,7 @@ uses (`tap.py 44` is F9, `tap.py '3d 15'` is MEGA+F), and `tap.py
 --probe` reads back what the keyboard queued for it; that is how the
 scrollback and the colours were verified (5.26).
 
-For the plaintext fixture answer `192.168.1.232`, `6667`, `n`. For
+For the plaintext fixture answer `192.168.1.251`, `6667`, `n`. For
 80x50, `boot_prg` cannot be used: `stage_d81 irc.d81` first (the disks
 live in `net-tools` and nothing mounts from a subdirectory, 2026-09-23),
 then reset, `poke53371,49`, `poke53297,peek(53297)or8`, then `mount` and

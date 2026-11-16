@@ -1862,3 +1862,13 @@ assembly row, and a scheme for doing the chain's three verifies inside
 the server's patience -- a design, not a session's work. It stays where
 5.22 left it, with this client refusing EC chains and dialling the next
 address, which Libera makes work.
+
+### 5.28 The Gemini client's crypto, again (2026-11-16)
+
+Poly1305, the inversion chain, P-256 by its form with mixed addition,
+the small-order check and the hardware RNG, from the Gemini client's
+5.18. P-256 key generation and ECDH, on Xemu: 5.1 s to 3.4 s each.
+On the machine, from the Net-Tools menu, only the plaintext fixture:
+registered, joined, a line sent, QUIT; TLS and OFTC's P-256 were not
+run this time (the same TLS code ran on the machine in the Gemini
+client).

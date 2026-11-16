@@ -210,16 +210,22 @@ void ck_api_keyshare(void)
   ck_dma_copy(PHYS(small), p28(blk), 32);
 }
 
-/* {peer28, hash28} */
+/* {peer28, hash28}; A = 1, or 0 with nothing installed if the shared
+ * secret is all zeros: a small-order point (RFC 8446 7.4.2) */
 void ck_api_keys_handshake(void)
 {
-  uint8_t ecdhe[32];
+  uint8_t ecdhe[32], z = 0, i;
   get_block();
   ck_dma_copy(p28(blk), PHYS(small), 32);        /* the peer's share */
   ck_dma_copy(p28(blk + 4), PHYS(small + 32), 32);   /* hash(CH, SH) */
+  ck_api_ra = 0;
   ck_frames_start();
   x25519(ecdhe, priv, small);
-  keys_from(ecdhe, small + 32);
+  for (i = 0; i < 32; i++) z |= ecdhe[i];
+  if (z) {
+    keys_from(ecdhe, small + 32);
+    ck_api_ra = 1;
+  }
   ck_frames_done();
 }
 
@@ -304,10 +310,8 @@ void ck_api_seal(void)
   each_piece(rec + 5, len, enc_piece, 1);
   aead_tag(&sealer, small);
   ck_dma_copy(PHYS(small), rec + 5 + len, 16);
-  /* Poly1305's multiplier table on this machine is one global, valid for
-   * whichever context built it last (poly1305.c, rr_ready): the record
-   * being read, if one is open, must rebuild its own (gemini 5.5) */
-  cipher.poly.rr_ready = 0;
+  /* (gemini 5.5's rebuild of the record reader's Poly1305 table is gone:
+   * each context now carries its own multipliers, poly1305.c) */
 }
 
 /* {hdr28} */
