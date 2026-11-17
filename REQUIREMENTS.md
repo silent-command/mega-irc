@@ -1863,7 +1863,7 @@ the server's patience -- a design, not a session's work. It stays where
 5.22 left it, with this client refusing EC chains and dialling the next
 address, which Libera makes work.
 
-### 5.28 The Gemini client's crypto, again (2026-11-16)
+### 5.34 The Gemini client's crypto, again (2026-11-16)
 
 Poly1305, the inversion chain, P-256 by its form with mixed addition,
 the small-order check and the hardware RNG, from the Gemini client's
@@ -1872,3 +1872,19 @@ On the machine, from the Net-Tools menu, only the plaintext fixture:
 registered, joined, a line sent, QUIT; TLS and OFTC's P-256 were not
 run this time (the same TLS code ran on the machine in the Gemini
 client).
+
+### 5.35 The same sources, the same disk (2026-11-17)
+
+The Gemini client's 5.19, which found it. Under the 2026-04-23
+toolchain, the IRC bank and client differed from build to build of one
+commit: llvm-mos's zero-page allocator broke ties in pointer order.
+Upstream's 742d554bf fixes it, and `~/llvm-mos` now has that one commit
+over the release (mega-net `docs/PLATFORM.md`, the toolchain). Four
+builds are the same, as is a second checkout and the toolchain at a
+second path. `tools/repro.py` builds N times and compares every file
+on the disk.
+
+The bank has 2,671 bytes free before `$BE00`, from 2,672; the client
+3,295 bytes of stack, from 3,296. On the machine, from the Net-Tools
+menu, the plaintext fixture: registered, joined #test with 30 names,
+a line sent, QUIT. TLS was not run (the same TLS code ran in Gemini).

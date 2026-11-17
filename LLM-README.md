@@ -62,12 +62,14 @@ Anything else that starts with `/` is refused rather than sent as text.
 
 ## Building
 
-Needs [llvm-mos](https://llvm-mos.org), `c1541` from VICE, Python 3,
+Needs [llvm-mos](https://llvm-mos.org) with its commit 742d554bf (2026-09-14;
+without it no two builds are the same, REQUIREMENTS.md 5.35), `c1541` from VICE, Python 3,
 and two sibling checkouts: `../mega-net` and
 `../mega65-libc` (github.com/MEGA65/mega65-libc).
 
 ```
 python3 build.py           the disk image, bin/IRC.D81
+python3 tools/repro.py     two builds, compared file by file (5.35)
 python3 build.py test      the host suite: the IRC parser, the TLS engine, the chain check
 python3 tools/deploy.py    onto the MEGA65's SD card, keeping the bookmarks (IRC.CFG) already there
 ```

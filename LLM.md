@@ -44,7 +44,7 @@ apart, past Libera's ECDSA servers and its throttle (5.21).
 `p384.c` and `sha384.c` verify all three links of the elliptic-curve
 chain Libera actually serves, against vectors the cryptography package
 signed off first. They cost 4.7 KB of 6502 code and 1,488 bytes of
-scratch, against 332 bytes free in the bank then (2.6 KB since 5.28), 237 in its window and
+scratch, against 332 bytes free in the bank then (2.6 KB since 5.34), 237 in its window and
 1.4 KB in the client, and a verification is 3.5 times a P-256 one,
 which was 10 s here. Read 5.22 before starting that work: it is a
 5.15-scale exercise plus a timing question, not an afternoon.
@@ -127,6 +127,7 @@ because this client exits through the ROM's reset (5.27, lowram.h).
 ```
 python3 build.py test         the host suites: the IRC line protocol, the clock, P-256 key agreement, the certificate chain on the real fixtures in tests/certs; the gate for any change
 python3 build.py              the bank (build/bank/crypto.bin, chain.bin), the client and bin/IRC.D81
+python3 tools/repro.py [N]    N builds (2), every file on the disk compared: the same sources must give the same disk (5.35)
 python3 build.py bank         the bank alone, with its map in build/bank/crypto.map (check .text.hi and .bss.hi there after touching crypto.ld: a pattern that matches nothing is silent, gemini 5.8)
 python3 build.py hostclient   build/host/tls_irc_host HOST[:PORT] [--ip A.B.C.D] [--nick N]: IRC over TLS on the host against a real server (5.11, 5.14); reaches OFTC via a P-256 retry, reconnects past Libera's EC servers; --ip pins one, since Libera's differ (5.10)
 python3 tools/gen_roots.py > src/tls/roots.c     regenerate the carried trust anchors from tests/certs (committed; needs the cryptography package)
