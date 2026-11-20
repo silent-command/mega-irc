@@ -1,3 +1,5 @@
+/* Copyright 2026 Justin Cameron
+ * SPDX-License-Identifier: Apache-2.0 */
 /* Walking DER, for the certificate chain: the element walker, the
  * Certificate's outer shape, and the fields of its TBSCertificate. One
  * certificate is selected at a time and the walkers take offsets alone,

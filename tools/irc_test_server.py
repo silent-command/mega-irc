@@ -1,4 +1,6 @@
 #!/usr/bin/env python3
+# Copyright 2026 Justin Cameron
+# SPDX-License-Identifier: Apache-2.0
 """A small IRC server for the spike: enough of RFC 1459 to register,
 join a channel, chat, and be pinged, with the behaviour the long run
 needs to prove and a log with timestamps.

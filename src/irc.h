@@ -1,3 +1,5 @@
+/* Copyright 2026 Justin Cameron
+ * SPDX-License-Identifier: Apache-2.0 */
 /* The IRC line protocol, RFC 1459 with the modern additions this client
  * has to survive. Portable C99: the host suite proves it, the client
  * uses it, and nothing in here touches the screen or the network.

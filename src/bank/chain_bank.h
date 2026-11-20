@@ -1,3 +1,5 @@
+/* Copyright 2026 Justin Cameron
+ * SPDX-License-Identifier: Apache-2.0 */
 /* chain.c's buffers as the bank has them, in place of its statics
  * (chain.c, CHAIN_BANK; REQUIREMENTS.md 5.15). Each is a buffer the bank
  * already owns and that is idle while a chain is checked, and each is a

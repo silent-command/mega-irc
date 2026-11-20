@@ -1,3 +1,5 @@
+/* Copyright 2026 Justin Cameron
+ * SPDX-License-Identifier: Apache-2.0 */
 /* One connection to an IRC server, plain or over TLS, behind one shape:
  * the client moves lines and never sees a record. Over TLS the handshake
  * runs here, the server's signature is checked by the bank, and the

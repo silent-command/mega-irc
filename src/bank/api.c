@@ -1,3 +1,5 @@
+/* Copyright 2026 Justin Cameron
+ * SPDX-License-Identifier: Apache-2.0 */
 /* The TLS bank's entries: the C behind each jump in jumptable.S, which
  * is the kit (src/tls/tlskit.h) as the bank sees it. The Gemini client's
  * api.c with this client's differences (REQUIREMENTS.md 5.15): no

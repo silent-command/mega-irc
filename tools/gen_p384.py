@@ -1,4 +1,6 @@
 #!/usr/bin/env python3
+# Copyright 2026 Justin Cameron
+# SPDX-License-Identifier: Apache-2.0
 """The P-384 constants in src/crypto/p384.c, derived and checked rather
 than copied from anywhere: p, n, b and the generator G of FIPS 186-4
 D.1.2.4. Before printing, this asserts that G lies on the curve

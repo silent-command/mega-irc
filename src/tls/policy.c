@@ -1,3 +1,5 @@
+/* Copyright 2026 Justin Cameron
+ * SPDX-License-Identifier: Apache-2.0 */
 /* The half of the chain check that is policy rather than arithmetic: is
  * the leaf for the host we dialled, and is every certificate in date.
  * No key and no signature is touched here. On the MEGA65 it ran in the

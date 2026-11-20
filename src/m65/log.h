@@ -1,3 +1,5 @@
+/* Copyright 2026 Justin Cameron
+ * SPDX-License-Identifier: Apache-2.0 */
 /* The scrollback: every view's rows in attic RAM, each row the 80 screen
  * codes the chat area shows, so a page is a copy and a view switch and
  * a scroll are the same redraw (REQUIREMENTS.md section 2). A view has

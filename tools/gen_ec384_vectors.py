@@ -1,4 +1,6 @@
 #!/usr/bin/env python3
+# Copyright 2026 Justin Cameron
+# SPDX-License-Identifier: Apache-2.0
 """tests/ec384vectors.h, from the elliptic-curve chain Libera actually
 served (tests/certs/libera_ec_*.der, REQUIREMENTS.md 5.10).
 

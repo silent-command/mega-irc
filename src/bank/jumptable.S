@@ -1,3 +1,5 @@
+/* Copyright 2026 Justin Cameron
+ * SPDX-License-Identifier: Apache-2.0 */
 ; The TLS bank's jump table and entry prologue: the Gemini client's bank
 ; (its src/bank/jumptable.S), with this client's entries: the same first
 ; twenty-three, then P-256, the store read and the chain check in the

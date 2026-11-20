@@ -1,3 +1,5 @@
+/* Copyright 2026 Justin Cameron
+ * SPDX-License-Identifier: Apache-2.0 */
 /* The host suite for src/irc.c: the line shapes a real server sends,
  * and the malformed ones it must not fall over.
  *

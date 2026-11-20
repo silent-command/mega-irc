@@ -1,4 +1,6 @@
 #!/usr/bin/env python3
+# Copyright 2026 Justin Cameron
+# SPDX-License-Identifier: Apache-2.0
 """Generates src/tls/roots.c: the trust anchors this client carries.
 
     python3 tools/gen_roots.py > src/tls/roots.c

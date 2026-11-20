@@ -1,3 +1,5 @@
+/* Copyright 2026 Justin Cameron
+ * SPDX-License-Identifier: Apache-2.0 */
 /* The chain check, whole: the name and the dates (policy.c) and then
  * the signatures and the anchor (chain.c) over the certificate store
  * (api.c, CERT_FAR). The policy half ran in the client until 2026-09-27,

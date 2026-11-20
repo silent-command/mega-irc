@@ -1,3 +1,5 @@
+/* Copyright 2026 Justin Cameron
+ * SPDX-License-Identifier: Apache-2.0 */
 #include "clock.h"
 
 uint8_t clock_plausible(const clock_date *d, uint8_t min_yy)

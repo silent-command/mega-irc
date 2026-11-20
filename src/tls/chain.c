@@ -1,3 +1,5 @@
+/* Copyright 2026 Justin Cameron
+ * SPDX-License-Identifier: Apache-2.0 */
 /* The half of the chain check that is arithmetic: each certificate's
  * signature under the next one's key, and the top against the anchors
  * this client carries. On the MEGA65 this is the TLS bank's, in its top

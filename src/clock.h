@@ -1,3 +1,5 @@
+/* Copyright 2026 Justin Cameron
+ * SPDX-License-Identifier: Apache-2.0 */
 /* The machine's clock, and whether it is worth believing.
  *
  * Certificate validity needs a date (REQUIREMENTS.md 5.8), and this

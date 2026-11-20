@@ -1,3 +1,5 @@
+/* Copyright 2026 Justin Cameron
+ * SPDX-License-Identifier: Apache-2.0 */
 /* What ircc.c shares with the command module (cmd.c), which lives in
  * the HIGH window under the KERNAL and is compiled apart, so these are
  * ordinary calls across the boundary rather than LTO's inlining (5.32).

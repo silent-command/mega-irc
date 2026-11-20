@@ -1,3 +1,5 @@
+/* Copyright 2026 Justin Cameron
+ * SPDX-License-Identifier: Apache-2.0 */
 /* The host suite for the certificate chain: PKCS#1 v1.5, the walking
  * that x509.c leaves out, and the whole verification against the anchors
  * this client carries. Run against what Libera and OFTC actually served

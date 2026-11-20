@@ -1,3 +1,5 @@
+/* Copyright 2026 Justin Cameron
+ * SPDX-License-Identifier: Apache-2.0 */
 /* The client's buffers in bank 0's low RAM, below the program: the
  * family's map (mega-net PLATFORM.md) leaves $1400-$15FF and
  * $1A00-$1FAF to clients, as gemini's lowram.h uses them, and the

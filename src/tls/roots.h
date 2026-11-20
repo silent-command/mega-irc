@@ -1,3 +1,5 @@
+/* Copyright 2026 Justin Cameron
+ * SPDX-License-Identifier: Apache-2.0 */
 /* The trust anchors this client carries, and nothing more.
  *
  * Decision 2: a root key or two, verified to, rather than the server's

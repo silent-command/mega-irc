@@ -1,3 +1,5 @@
+/* Copyright 2026 Justin Cameron
+ * SPDX-License-Identifier: Apache-2.0 */
 /* mega-irc: one server, over TLS or in the clear, the status window and
  * up to seven channels on the function keys, scrollback in attic RAM,
  * the common slash commands. The spike's shape (NOTES.md section 5)

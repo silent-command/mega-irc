@@ -1,3 +1,5 @@
+/* Copyright 2026 Justin Cameron
+ * SPDX-License-Identifier: Apache-2.0 */
 /* The views: the status window and up to seven channels, one on the
  * screen at a time, each with its scrollback in the log (log.h). The
  * chat area is rows 1 to the counts row; row 0 is the bar of views on

@@ -1,3 +1,5 @@
+/* Copyright 2026 Justin Cameron
+ * SPDX-License-Identifier: Apache-2.0 */
 /* SHA-384 (FIPS 180-4): SHA-512's compression with another initial
  * value and the first 48 bytes of the result. It is here because Let's
  * Encrypt's elliptic-curve hierarchy signs `ecdsa-with-SHA384` from the

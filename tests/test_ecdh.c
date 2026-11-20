@@ -1,3 +1,5 @@
+/* Copyright 2026 Justin Cameron
+ * SPDX-License-Identifier: Apache-2.0 */
 /* The host suite for P-256 key agreement: p256_keygen and p256_ecdh,
  * which exist because OFTC will not take x25519 and asks for a P-256
  * share with a HelloRetryRequest (REQUIREMENTS.md 5.12).

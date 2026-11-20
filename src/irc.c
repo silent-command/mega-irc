@@ -1,3 +1,5 @@
+/* Copyright 2026 Justin Cameron
+ * SPDX-License-Identifier: Apache-2.0 */
 #include "irc.h"
 
 uint8_t irc_parse(char *line, irc_msg *m)

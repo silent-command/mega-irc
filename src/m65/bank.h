@@ -1,3 +1,5 @@
+/* Copyright 2026 Justin Cameron
+ * SPDX-License-Identifier: Apache-2.0 */
 #ifndef BANK_H
 #define BANK_H
 /* Loads IRCCRYPTO and CHAIN from the drive MEGANET came from, and runs the

@@ -1,3 +1,5 @@
+/* Copyright 2026 Justin Cameron
+ * SPDX-License-Identifier: Apache-2.0 */
 /* The slash commands, the private views, the ignore list and CTCP: the
  * part of the client that grew past the program's room in September
  * 2026 (5.32). It sits in the HIGH window under the KERNAL (irc.ld,

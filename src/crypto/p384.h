@@ -1,3 +1,5 @@
+/* Copyright 2026 Justin Cameron
+ * SPDX-License-Identifier: Apache-2.0 */
 /* ECDSA over NIST P-384 with a SHA-384 digest (`ecdsa-with-SHA384`):
  * what Let's Encrypt's elliptic-curve hierarchy signs with, from ISRG
  * Root X2 down to the leaf, and therefore what verifying an EC chain

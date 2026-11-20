@@ -1,3 +1,5 @@
+/* Copyright 2026 Justin Cameron
+ * SPDX-License-Identifier: Apache-2.0 */
 /* Bookmarks: IRC.CFG on the disk the client booted from, as mega-ftp
  * keeps FTPC.CFG, so the file travels with the program. A line "IRC1",
  * then five lines per entry: host, port, TLS (y or n), nick, the

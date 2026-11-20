@@ -1,3 +1,5 @@
+/* Copyright 2026 Justin Cameron
+ * SPDX-License-Identifier: Apache-2.0 */
 /* IRC over TLS on the host, against a real server: the proof that the
  * whole stack holds together before any of it goes near the MEGA65.
  *

@@ -1,3 +1,5 @@
+/* Copyright 2026 Justin Cameron
+ * SPDX-License-Identifier: Apache-2.0 */
 /* The TLS bank from the boot disk: IRCCRYPTO to $12000, CHAIN (its top
  * window) to $1E000 and the trampoline to $1700, as the Gemini client's
  * boot.c does (ssh ck_boot); then the bank's INIT. Three tries each: the

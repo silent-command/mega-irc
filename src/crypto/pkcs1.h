@@ -1,3 +1,5 @@
+/* Copyright 2026 Justin Cameron
+ * SPDX-License-Identifier: Apache-2.0 */
 /* RSASSA-PKCS1-v1_5 verification with SHA-256 (RFC 8017 8.2.2).
  *
  * The family already has RSA-PSS, because that is the only RSA scheme

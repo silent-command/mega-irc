@@ -1,3 +1,5 @@
+/* Copyright 2026 Justin Cameron
+ * SPDX-License-Identifier: Apache-2.0 */
 /* Walking a certificate chain: what x509.h deliberately leaves out.
  *
  * The Gemini client trusts a server's key on first use and says so
